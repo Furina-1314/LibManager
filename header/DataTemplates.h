@@ -56,14 +56,14 @@ public:
 struct UserID {
 	long long int Value = -1;//UserID的值，默认非法
 	//运算符重载
-	bool operator ==(UserID& other) { return Value == other.Value; }
-	bool operator !=(UserID& other) { return Value != other.Value; }
+	bool operator ==(const UserID& other) const { return Value == other.Value; }
+	bool operator !=(const UserID& other) const { return Value != other.Value; }
 };
 struct VolumeID {
 	long long int Value = -1;//VolumeID的值，默认非法
 	//运算符重载
-	bool operator ==(VolumeID& other) { return Value == other.Value; }
-	bool operator !=(VolumeID& other) { return Value != other.Value; }
+	bool operator ==(const VolumeID& other) const { return Value == other.Value; }
+	bool operator !=(const VolumeID& other) const { return Value != other.Value; }
 };
 class Volume {
 private:
@@ -149,26 +149,52 @@ public:
 };
 class LoanRecord {
 private:
-	long long int BorrowerID;//借阅者ID
+	long long int RecordID = -1; //借阅流水号（数据库自增主键）
+	VolumeID VolumeIDValue;//单册ID
+	UserID BorrowerID;//借阅者ID
 	bool IsReturned;//是否已归还，默认为1（已归还）
 	QDate LoanDate;//借书日期
 	QDate DueDate;//应还日期
+	QDate ReturnDate;//归还日期
 public:
-	LoanRecord(long long int a = -1, bool b = true, QDate c = QDate(), QDate d = QDate()) :
-		BorrowerID(a), IsReturned(b), LoanDate(c), DueDate(d) {	}
+	LoanRecord(bool b = true, QDate c = QDate(), QDate d = QDate(), QDate e = QDate()) :
+		IsReturned(b), LoanDate(c), DueDate(d), ReturnDate(e) {}
+	//Getter
+	const long long int lli_RecordID() const { return RecordID; }
+	const VolumeID& stct_VolumeIDValue() const { return VolumeIDValue; }
+	const UserID& stct_BorrowerID() const { return BorrowerID; }
 	const bool b_IsReturned() const { return IsReturned; }
-	const QDate qd_LoanDate() const { return LoanDate; }
-	const QDate qd_DueDate() const { return DueDate; }
+	const QDate& qd_LoanDate() const { return LoanDate; }
+	const QDate& qd_DueDate() const { return DueDate; }
+	const QDate& qd_ReturnDate() const { return ReturnDate; }
+	//Setter
+	[[nodiscard]] ErrorCode SetRecordID(long long int id) {
+		if (id <= 0) return ErrorCode::ILLEGAL_INPUT;
+		RecordID = id; return ErrorCode::SUCCESS;
+	}
+	[[nodiscard]] ErrorCode SetVolumeID(const VolumeID& id) {
+		if (id.Value <= 0) return ErrorCode::ILLEGAL_INPUT;
+		VolumeIDValue = id; return ErrorCode::SUCCESS;
+	}
+	[[nodiscard]] ErrorCode SetBorrowerID(const UserID& id) {
+		if (id.Value <= 0) return ErrorCode::ILLEGAL_INPUT;
+		BorrowerID = id; return ErrorCode::SUCCESS;
+	}
+	void SetLoanDate(const QDate& d) { LoanDate = d; }
+	void SetDueDate(const QDate& d) { DueDate = d; }
+	void SetReturnDate(const QDate& d) { ReturnDate = d; }
+	void SetIsReturned(bool b) { IsReturned = b; }
 };
 class BorrowHistory {
 private:
-	long long int ISBN;
+	ISBN BookISBN;
 	QList<LoanRecord> RecordList;
 public:
-	BorrowHistory(long long int a=-1,QList<LoanRecord> b=QList<LoanRecord>()){
-		ISBN = a; RecordList = b;
+	BorrowHistory(QList<LoanRecord> b=QList<LoanRecord>()){
+		RecordList = b;
 	}
-	const QList<LoanRecord> ql_RecordList() const { return RecordList; }
+	//Getter
+	const QList<LoanRecord>& ql_RecordList() const { return RecordList; }
 };
 class Account {
 private:
@@ -192,7 +218,7 @@ public:
 		return ErrorCode::SUCCESS;
 	}
 	[[nodiscard]] ErrorCode SetUserAuth(Auth in) {
-		if (in == Auth::Reader || in == Auth::Admin) { UserAuth = in; return ErrorCode::SUCCESS }
+		if (in == Auth::Reader || in == Auth::Admin) { UserAuth = in; return ErrorCode::SUCCESS; }
 		else  return ErrorCode::SYSTEM_ERROR;
 	}
 	[[nodiscard]] ErrorCode SetIsValid(bool in) {
