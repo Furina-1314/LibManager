@@ -13,7 +13,7 @@ private:
 	long long int BorrowerID;//目前借阅者的ID，预备供用户管理使用
 public:
 	Volume(long long int a = 0, Availability b = Availability::Illegal, bool c = 0, QDate date=QDate()) {
-		ID = a; IsAvailable = b; IsOpenshelf = 0;
+		ID = a; IsAvailable = b; IsOpenshelf = c;
 		DueDate = date;
 		Location = QList<int>(5,-1);
 		BorrowerID = -1;
