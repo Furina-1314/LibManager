@@ -4,7 +4,7 @@
 	Unavailable_OnLoan = 2,//不可外借：外借中
 	Unavailable_Lost = 3,//不可外借：单册丢失
 	Unavailable_Processing = 4//不可外借：文献加工中
-};
+};//可用状态
 enum class Library {
 	Illegal=-1,//初始化默认值
 	LIB_North = 1,

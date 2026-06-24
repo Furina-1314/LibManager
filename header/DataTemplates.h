@@ -1,28 +1,74 @@
 ﻿#include<QDate>
 #include<QList>
 #include<QString>
-#include <QMessageBox>
 #include<TypeCode.h>
+struct BookLocation {
+	Library libraryID = Library::Illegal; // 馆
+	int floor = -1;                       // 楼层
+	Area areaID = Area::Illegal;          // 图书区
+	int shelf = -1;                       // 架
+	int layer = -1;                       // 层
+	//有效性自检
+	bool isValid() const {
+		return libraryID != Library::Illegal &&
+			areaID != Area::Illegal &&
+			floor >= 0 && shelf >= 0 && layer >= 0;
+	}
+};//馆藏位置
+class ISBN {
+private:
+	QString Value;//ISBN的值
+	bool isValid;
+public:
+	// 缺省构造：处于非法空状态
+	ISBN() : Value(""), isValid(false) {}
+	// Setter
+	[[nodiscard]] ErrorCode SetValue(const QString& Input) {
+		//空输入检查
+		if (Input.isEmpty()) {
+			isValid = false;
+			return ErrorCode::EMPTY_INPUT;
+		}
+		//正负检查
+		if (Input.startsWith('-')) {
+			isValid = false;
+			return ErrorCode::ILLEGAL_INPUT;
+		}
+		// 位数检查，仅放行10位或13位的纯数字串
+		int len = Input.length();
+		if (len == 10 || len == 13) {
+			Value = Input;
+			isValid = true;
+			return ErrorCode::SUCCESS;
+		}
+		else {
+			isValid = false;
+			return ErrorCode::ILLEGAL_INPUT;
+		}//位数不符
+	}
+	// Getter
+	const QString& qs_Value() const { return Value; }
+	const bool b_isValid() const { return isValid; }
+};
 class Volume {
 private:
 	long long int ID;//单册ID，默认初始化置零，实际数据应为条码编号
 	Availability IsAvailable;//可用状态
 	bool IsOpenshelf;//是否开架图书，1为开架图书，0为闭架图书
-	QList<int> Location;//馆藏位置，0：馆；1：楼层；2：图书区；3：架；4：层
+	BookLocation Location;//馆藏位置
 	QDate DueDate;//外借到期时间
 	long long int BorrowerID;//目前借阅者的ID，预备供用户管理使用
 public:
 	Volume(long long int a = 0, Availability b = Availability::Illegal, bool c = 0, QDate date=QDate()) {
 		ID = a; IsAvailable = b; IsOpenshelf = c;
 		DueDate = date;
-		Location = QList<int>(5,-1);
 		BorrowerID = -1;
 	}
 	const long long int lli_ID() const { return ID; }
 	const Availability i_IsAvailable() const { return IsAvailable; }
 	const bool b_IsOpenshelf() const { return IsOpenshelf; }
-	const QList<int> ql_Location() const { return Location; }
-	const QDate qd_DueDate() const { return DueDate; }
+	const BookLocation& stct_Location() const { return Location; }
+	const QDate& qd_DueDate() const { return DueDate; }
 	ErrorCode SetID(const long long int in) {
 		if (in > 0) { ID = in; return ErrorCode::SUCCESS; }
 		else  return ErrorCode::ILLEGAL_INPUT;
@@ -36,11 +82,11 @@ public:
 		else  return ErrorCode::ILLEGAL_INPUT;
 	}
 	void SetDueDate(const QDate& in) { DueDate = in; }
-	void SetLocation(const QList<int>& in) { Location = in;	}
+	void SetLocation(const BookLocation& in) { Location = in;	}
 };
 class Book{
 private:
-	long long int ISBN;//ISBN编码
+	ISBN BookISBN;//ISBN编码
 	QString Name;//书名
 	QList<QString> Author;//作者（一位或若干位）
 	QString Press;//出版社
@@ -49,25 +95,21 @@ private:
 	Language PubLanguage;//出版文种
 	QList<Volume> VolumeList;//单册列表
 public:
-	Book(long long int a = -1, QString b = "", QList<QString> auth = QList<QString>(), QString prss = "",
+	Book( QString b = "", QList<QString> auth = QList<QString>(), QString prss = "",
 		Category cat = Category::Illegal, int yr = -9999, Language lang = Language::Illegal,
 		QList<Volume> list = QList<Volume>()) {
-		ISBN = a; Name = b; Author = auth; Press = prss;
+		Name = b; Author = auth; Press = prss;
 		PubCategory = cat; PubYear = yr; PubLanguage = lang;
 		VolumeList = list;
 	}
-	const long long int lli_ISBN() const { return ISBN; }
-	const QString qs_Name() const { return Name; }
-	const QList<QString> ql_Author() const { return Author; }
-	const QString qs_Press() const { return Press; }
+	const QString& qs_Name() const { return Name; }
+	const QList<QString>& ql_Author() const { return Author; }
+	const QString& qs_Press() const { return Press; }
 	const Category cat_PubCategory() const { return PubCategory; }
 	const int i_PubYear() const { return PubYear; }
 	const Language lang_PubLanguage() const { return PubLanguage; }
-	const QList<Volume> ql_VolumeList() const { return VolumeList; }
-	ErrorCode SetISBN(const long long int in) { 
-		if (in > 0) { ISBN = in; return ErrorCode::SUCCESS; }
-		else  return ErrorCode::ILLEGAL_INPUT;
-	}
+	const QList<Volume>& ql_VolumeList() const { return VolumeList; }
+	ErrorCode SetISBN(const QString& in) { return BookISBN.SetValue(in); }
 	ErrorCode SetName(const QString& in) {
 		if (in.isEmpty()) {  return ErrorCode::EMPTY_INPUT; }
 		else { Name = in; return ErrorCode::SUCCESS; }
@@ -90,14 +132,14 @@ public:
 		else  return ErrorCode::ILLEGAL_INPUT;
 	}
 };
-class Borrower {
+class LoanRecord {
 private:
 	long long int BorrowerID;//借阅者ID
 	bool IsReturned;//是否已归还，默认为1（已归还）
 	QDate LoanDate;//借书日期
 	QDate DueDate;//应还日期
 public:
-	Borrower(long long int a = -1, bool b = true, QDate c = QDate(), QDate d = QDate()) :
+	LoanRecord(long long int a = -1, bool b = true, QDate c = QDate(), QDate d = QDate()) :
 		BorrowerID(a), IsReturned(b), LoanDate(c), DueDate(d) {	}
 	const bool b_IsReturned() const { return IsReturned; }
 	const QDate qd_LoanDate() const { return LoanDate; }
@@ -106,11 +148,11 @@ public:
 class BorrowHistory {
 private:
 	long long int ISBN;
-	QList<Borrower> BorrowerList;
+	QList<LoanRecord> RecordList;
 public:
-	BorrowHistory(long long int a=-1,QList<Borrower> b=QList<Borrower>()){
-		ISBN = a; BorrowerList = b;
+	BorrowHistory(long long int a=-1,QList<LoanRecord> b=QList<LoanRecord>()){
+		ISBN = a; RecordList = b;
 	}
-	const QList<Borrower> ql_BorrowerList() const { return BorrowerList; }
+	const QList<LoanRecord> ql_RecordList() const { return RecordList; }
 };
 
