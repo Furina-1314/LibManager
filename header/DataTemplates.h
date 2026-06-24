@@ -1,6 +1,9 @@
 ﻿#include<QDate>
 #include<QList>
 #include<QString>
+#include <QRandomGenerator>
+#include <QCryptographicHash>
+#include <QByteArray>
 #include<TypeCode.h>
 struct BookLocation {
 	Library libraryID = Library::Illegal; // 馆
@@ -50,27 +53,39 @@ public:
 	const QString& qs_Value() const { return Value; }
 	const bool b_isValid() const { return isValid; }
 };
+struct UserID {
+	long long int Value = -1;//UserID的值，默认非法
+	//运算符重载
+	bool operator ==(UserID& other) { return Value == other.Value; }
+	bool operator !=(UserID& other) { return Value != other.Value; }
+};
+struct VolumeID {
+	long long int Value = -1;//VolumeID的值，默认非法
+	//运算符重载
+	bool operator ==(VolumeID& other) { return Value == other.Value; }
+	bool operator !=(VolumeID& other) { return Value != other.Value; }
+};
 class Volume {
 private:
-	long long int ID;//单册ID，默认初始化置零，实际数据应为条码编号
+	VolumeID ID;//单册ID，默认初始化置零，实际数据应为条码编号
 	Availability IsAvailable;//可用状态
 	bool IsOpenshelf;//是否开架图书，1为开架图书，0为闭架图书
 	BookLocation Location;//馆藏位置
 	QDate DueDate;//外借到期时间
 	long long int BorrowerID;//目前借阅者的ID，预备供用户管理使用
 public:
-	Volume(long long int a = 0, Availability b = Availability::Illegal, bool c = 0, QDate date=QDate()) {
-		ID = a; IsAvailable = b; IsOpenshelf = c;
+	Volume(Availability b = Availability::Illegal, bool c = 0, QDate date=QDate()) {
+		IsAvailable = b; IsOpenshelf = c;
 		DueDate = date;
 		BorrowerID = -1;
 	}
-	const long long int lli_ID() const { return ID; }
+	const VolumeID stct_ID() const { return ID; }
 	const Availability i_IsAvailable() const { return IsAvailable; }
 	const bool b_IsOpenshelf() const { return IsOpenshelf; }
 	const BookLocation& stct_Location() const { return Location; }
 	const QDate& qd_DueDate() const { return DueDate; }
-	ErrorCode SetID(const long long int in) {
-		if (in > 0) { ID = in; return ErrorCode::SUCCESS; }
+	ErrorCode SetID(const VolumeID& in) {
+		if (in.Value > 0) { ID = in; return ErrorCode::SUCCESS; }
 		else  return ErrorCode::ILLEGAL_INPUT;
 	}
 	ErrorCode SetBorrwerID(const long long int id) {
@@ -155,4 +170,51 @@ public:
 	}
 	const QList<LoanRecord> ql_RecordList() const { return RecordList; }
 };
-
+class Account {
+private:
+	UserID ID;
+	bool IsValid;//账户有效性
+	QString Name;
+	Auth UserAuth;
+	QByteArray PasswordHash; // Hash
+	QByteArray Salt;         // salt
+public:
+	Account() :Name(""), IsValid(false), UserAuth(Auth::Illegal) {}
+	// 身份与名称Setter
+	[[nodiscard]] ErrorCode SetID(long long int id) {
+		if (id <= 0) return ErrorCode::ILLEGAL_INPUT;
+		ID.Value = id;
+		return ErrorCode::SUCCESS;
+	}
+	[[nodiscard]] ErrorCode SetName(const QString& name) {
+		if (name.isEmpty()) return ErrorCode::EMPTY_INPUT;
+		Name = name;
+		return ErrorCode::SUCCESS;
+	}
+	[[nodiscard]] ErrorCode SetUserAuth(Auth in) {
+		if (in == Auth::Reader || in == Auth::Admin) { UserAuth = in; return ErrorCode::SUCCESS }
+		else  return ErrorCode::SYSTEM_ERROR;
+	}
+	[[nodiscard]] ErrorCode SetIsValid(bool in) {
+		IsValid = in; return ErrorCode::SUCCESS;
+	}
+	// 密码设值（存储Hash）
+	[[nodiscard]] ErrorCode SetPassword(const QString& plainPassword) {
+        if (plainPassword.length() < 8) return ErrorCode::PASSWORD_TOO_SHORT;
+        //生成随机盐 (Salt)
+        this->Salt = QByteArray::number(QRandomGenerator::global()->generate64(), 16);
+        //加盐哈希 (Salt + Password)
+        QByteArray combined = plainPassword.toUtf8() + Salt;
+        this->PasswordHash = QCryptographicHash::hash(combined, QCryptographicHash::Sha3_512);
+        return ErrorCode::SUCCESS;
+    }
+	//终态自检接口，确保该账户已准备就绪
+	bool IsReady() const {
+		return IsValid && !Name.isEmpty() && !PasswordHash.isEmpty();
+	}
+	//Getter
+	const UserID& stct_ID() const { return ID; }
+	const QString& qs_Name() const { return Name; }
+	const QByteArray& qba_PasswordHash() const { return PasswordHash; }
+	const QByteArray& qba_Salt() const { return Salt; }
+};

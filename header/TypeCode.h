@@ -25,16 +25,21 @@ enum  class ErrorCode {
 	EMPTY_INPUT = 1002,//空输入
 	ILLEGAL_INPUT = 1003,//非法输入：输入不合格式或赋值意图违反逻辑
 	NO_ACCESS = 1004,//无权限
+	INVALID = 1005,//不可用的账户
+	EMPTY_USENAME = 1006,//空用户名
+	PASSWORD_TOO_SHORT = 1007,//密码过短
 	//业务相关错误
 	NO_RESULT = 2005,//未找到结果
 	VOLUME_NOT_AVAILABLE = 2006,//单册不可获取
 	VOLUME_OVERDUE = 2007,//存在单册逾期
 	MAX_BORROW_LIMIT = 2008,//达到借阅上限
 	//系统相关错误
+	SYSTEM_ERROR = 3001,//意外的系统错误
 	FAILED_SEARCH = 3006,//搜寻失败
 	FAILED_TO_READ = 3007,//读入失败
 	FAILED_TO_WRITE = 3008,//写出失败
 	DATABASE_ERROR = 3009,//数据库错误
+	DATA_ERROR = 3010,//数据错误（存在ID重复或非法等情况）
 	//预留项
 	OTHER_ERROR = 9999//其他（可能的）错误
 };//错误代码
@@ -58,3 +63,8 @@ enum class Category {
 	Art = 4,
 	Technology = 5
 };//图书分类
+enum class Auth {
+	Illegal = -1,
+	Reader = 1,//读者
+	Admin = 2//管理员
+};//用户身份
