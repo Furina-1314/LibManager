@@ -10,6 +10,8 @@ find_package(Qt6 REQUIRED COMPONENTS Core)
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
+find_package(Qt6 REQUIRED COMPONENTS Sql)
+
 qt_standard_project_setup(REQUIRES 6.10)
 
 # Content of downloaded design from Figma to Qt or similar
@@ -18,7 +20,7 @@ if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/importedcontent/CMakeLists.txt")
 endif()
 
 qt_add_executable(appLibManager
-    main.cpp
+    src/main.cpp
 )
 
 qt_add_qml_module(appLibManager
@@ -38,10 +40,10 @@ set_target_properties(appLibManager PROPERTIES
     WIN32_EXECUTABLE TRUE
 )
 
-target_link_libraries(appLibManager
-    PRIVATE Qt6::Quick
-)
+target_link_libraries(appLibManager PRIVATE Qt6::Quick)
 target_link_libraries(appLibManager PRIVATE Qt6::Widgets)
+target_link_libraries(appLibManager PRIVATE Qt6::Sql)
+
 target_include_directories(appLibManager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/header)
 
 install(TARGETS appLibManager
